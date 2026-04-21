@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PartPilot — Audit Table</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <script defer src="assets/js/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar">
+    <div class="top-left">
+      <a href="index.html" class="brand"><span class="logo">›_</span><span class="name">PartPilot</span></a>
+      <div class="sep"></div>
+      <div class="app-title">12 parts</div>
+      <div class="badge-counts"><span class="count red">◉ 2</span><span class="count amber">△ 3</span><span class="count green">◌ 7</span></div>
+      <div class="view-toggle">
+        <button class="active">▦</button>
+        <a href="audit-report.html"><button>☰</button></a>
+        <button>☑</button>
+      </div>
+    </div>
+    <div class="top-right">
+      <span class="small-link">⌕ Cross-Ref</span>
+      <a class="top-btn green" href="audit-report.html">Audit Report</a>
+      <span class="small-link">◷ Audit Log (0)</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="rowline" style="padding:0 8px 12px;color:#dbe2ed"><strong>◌ Guest Session</strong><span class="sep"></span><span class="muted">🔒 Unlocked</span></div>
+      <h4>Filters</h4>
+      <div style="padding:0 8px 12px"><input class="search-input" placeholder="Search MPN, mfr..." /></div>
+      <h4>Risk level</h4>
+      <div class="filter-row">
+        <span class="chip red">Critical 2</span><span class="chip amber">Warning 3</span><span class="chip green">Healthy 7</span>
+      </div>
+      <h4>Lifecycle</h4>
+      <div class="filter-row">
+        <span class="chip gray">Active 9</span><span class="chip gray">NRND 2</span><span class="chip gray">EOL 1</span>
+      </div>
+      <h4>Category</h4>
+      <div class="filter-row">
+        <span class="chip gray">Capacitor 1</span><span class="chip gray">Crystal 1</span><span class="chip gray">Diode 1</span><span class="chip gray">Interface 2</span><span class="chip gray">MCU 1</span><span class="chip gray">Memory 1</span><span class="chip gray">Power 3</span><span class="chip gray">Protection 1</span><span class="chip gray">Resistor 1</span>
+      </div>
+      <h4>Compliance</h4>
+      <div class="filter-row"><span class="chip gray">AEC-Q100 3</span><span class="chip gray">REACH 7</span><span class="chip gray">RoHS 12</span></div>
+      <h4>Mount</h4>
+      <div class="filter-row"><span class="chip gray">SMD 12</span></div>
+    </aside>
+
+    <main class="main">
+      <div class="table-wrap panel">
+        <table>
+          <thead>
+            <tr>
+              <th></th><th>MPN</th><th>MFR</th><th>Description</th><th>Qty</th><th>Category</th><th>Pkg</th><th>Lifecycle</th><th>YTEOL</th><th>Stock</th><th>Unit $</th><th>Ext $</th><th>Trend</th><th>Compl.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-border-red"><td class="stock-red">⊘</td><td class="mpn">FT232RL-REEL</td><td>FTDI</td><td>USB to UART Bridge</td><td>1</td><td>Interface</td><td>SSOP-28</td><td><span class="status eol">EOL</span></td><td class="y-red">0y</td><td class="stock-red">0</td><td>—</td><td>—</td><td class="stock-red">↘</td><td><span class="comp-badge">RoHS</span></td></tr>
+            <tr class="row-border-red"><td class="stock-red">⊘</td><td class="mpn">ADP7142ARDZ-3.3</td><td>Analog Devices</td><td>Low Noise 3.3V LDO 200mA</td><td>1</td><td>Power</td><td>SOIC-8</td><td><span class="status nrnd">NRND</span></td><td class="y-red">1y</td><td class="stock-red">0</td><td>—</td><td>—</td><td class="stock-red">↘</td><td><span class="comp-badge">RoHS</span></td></tr>
+            <tr class="row-border-amber"><td class="stock-amber">△</td><td class="mpn">LM1117MPX-3.3</td><td>TI</td><td>3.3V LDO Regulator 800mA</td><td>2</td><td>Power</td><td>SOT-223</td><td><span class="status nrnd">NRND</span></td><td class="y-red">2y</td><td class="stock-amber">45</td><td>$1.02</td><td>$2.04</td><td class="stock-red">↘</td><td><span class="comp-badge">RoHS</span></td></tr>
+            <tr class="row-border-amber"><td class="stock-amber">△</td><td class="mpn">SN65HVD230DR</td><td>TI</td><td>CAN Bus Transceiver</td><td>2</td><td>Interface</td><td>SOIC-8</td><td><span class="status active">Active</span></td><td class="y-green">8y</td><td class="stock-amber">80</td><td>$2.09</td><td>$4.18</td><td>—</td><td><span class="comp-badge">RoHS</span><span class="comp-badge">AEC-Q100</span></td></tr>
+            <tr class="row-border-amber"><td class="stock-amber">△</td><td class="mpn">ESD7004MUTAG</td><td>ON Semi</td><td>TVS Diode Array USB ESD</td><td>2</td><td>Protection</td><td>SOT-553</td><td><span class="status active">Active</span></td><td class="y-green">6y</td><td class="stock-amber">30</td><td>$0.19</td><td>$0.39</td><td>—</td><td><span class="comp-badge">RoHS</span></td></tr>
+            <tr><td class="stock-green">◌</td><td class="mpn">STM32F407VGT6</td><td>STMicroelectronics</td><td>ARM Cortex-M4 MCU 168MHz 1MB…</td><td>1</td><td>MCU</td><td>LQFP-100</td><td><span class="status active">Active</span></td><td class="y-green">12y</td><td class="stock-green">8,500</td><td>$6.88</td><td>$6.88</td><td>—</td><td><span class="comp-badge">RoHS</span><span class="comp-badge">REACH</span></td></tr>
+            <tr><td class="stock-green">◌</td><td class="mpn">GRM155R71C104KA88D</td><td>Murata</td><td>100nF 16V X7R 0402</td><td>48</td><td>Capacitor</td><td>0402</td><td><span class="status active">Active</span></td><td class="y-green">15y</td><td class="stock-green">250,000</td><td>$0.0044</td><td>$0.21</td><td>—</td><td><span class="comp-badge">RoHS</span><span class="comp-badge">REACH</span></td></tr>
+            <tr><td class="stock-green">◌</td><td class="mpn">RC0402FR-0710KL</td><td>Yageo</td><td>10KΩ 1% 0402 Resistor</td><td>24</td><td>Resistor</td><td>0402</td><td><span class="status active">Active</span></td><td class="y-green">18y</td><td class="stock-green">500,000</td><td>$0.0017</td><td>$0.04</td><td>—</td><td><span class="comp-badge">RoHS</span><span class="comp-badge">REACH</span></td></tr>
+            <tr><td class="stock-green">◌</td><td class="mpn">W25Q128JVSIQ</td><td>Winbond</td><td>128Mbit SPI Flash</td><td>1</td><td>Memory</td><td>SOIC-8</td><td><span class="status active">Active</span></td><td class="y-green">10y</td><td class="stock-green">15,000</td><td>$1.18</td><td>$1.18</td><td>—</td><td><span class="comp-badge">RoHS</span><span class="comp-badge">REACH</span></td></tr>
+            <tr><td class="stock-green">◌</td><td class="mpn">CSTCE16M0V53-R0</td><td>Murata</td><td>16MHz Ceramic Resonator</td><td>1</td><td>Crystal</td><td>0603</td><td><span class="status active">Active</span></td><td class="y-green">14y</td><td class="stock-green">32,000</td><td>$0.25</td><td>$0.25</td><td class="stock-green">↗</td><td><span class="comp-badge">RoHS</span><span class="comp-badge">REACH</span></td></tr>
+            <tr><td class="stock-green">◌</td><td class="mpn">BAT54S</td><td>Nexperia</td><td>Dual Schottky Diode</td><td>4</td><td>Diode</td><td>SOT-23</td><td><span class="status active">Active</span></td><td class="y-green">16y</td><td class="stock-green">120,000</td><td>$0.04</td><td>$0.18</td><td>—</td><td><span class="comp-badge">RoHS</span><span class="comp-badge">REACH</span></td></tr>
+            <tr><td class="stock-green">◌</td><td class="mpn">TPS62160DSGR</td><td>TI</td><td>1A Step-Down Converter 3-17V</td><td>1</td><td>Power</td><td>WSON-8</td><td><span class="status active">Active</span></td><td class="y-green">11y</td><td class="stock-green">7,200</td><td>$1.76</td><td>$1.76</td><td>—</td><td><span class="comp-badge">RoHS</span><span class="comp-badge">REACH</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="bottom-status"><span>$ BOM Total: <strong>$17.09</strong></span><span>◫ 12 lines • 88 pcs</span><span class="red">◉ 2 out of stock</span></div>
+
+      <div class="monitor-card">
+        <div class="monitor-title"><span>🔔 Monitor this project?</span><button data-close-monitor style="background:none;border:none;color:#7f8aa0;font:inherit;cursor:pointer">✕</button></div>
+        <p>Get alerts when part availability or lifecycle changes.</p>
+        <div class="monitor-form"><input placeholder="engineer@company.com"><button class="watch-btn">Watch</button></div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
