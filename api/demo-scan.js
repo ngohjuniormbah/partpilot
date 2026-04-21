@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       ok: true,
       scanId: result.scanId,
-      status: result.status || 'processing'
+      status: result.status || 'completed'
     });
   } catch (error) {
     console.error('demo-scan error:', error);

@@ -1,4 +1,4 @@
-const { query } = require('../lib/db');
+const db = require('../lib/db');
 
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
@@ -20,23 +20,11 @@ module.exports = async (req, res) => {
       });
     }
 
-    const result = await query(
+    const result = await db.runQuery(
       `
         select
-          mpn,
-          manufacturer,
-          description,
-          qty,
-          category,
-          package,
-          lifecycle,
-          yteol,
-          stock,
-          unit_price,
-          ext_price,
-          trend,
-          compliance,
-          risk_level
+          mpn, manufacturer, description, qty, category, package,
+          lifecycle, yteol, stock, unit_price, ext_price, trend, compliance, risk_level
         from parts
         where scan_id = $1
         order by id asc
@@ -44,7 +32,7 @@ module.exports = async (req, res) => {
       [scanId]
     );
 
-    const parts = result.rows.map(part => ({
+    const parts = result.rows.map((part) => ({
       ...part,
       compliance: parseCompliance(part.compliance)
     }));
@@ -72,7 +60,7 @@ function parseCompliance(value) {
   } catch {
     return String(value)
       .split(',')
-      .map(v => v.trim())
+      .map((v) => v.trim())
       .filter(Boolean);
   }
 }

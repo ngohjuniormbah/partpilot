@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pollStatus();
   }
 
-  document.querySelectorAll('[data-close-monitor]').forEach(btn => {
+  document.querySelectorAll('[data-close-monitor]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const card = btn.closest('.monitor-card');
       if (card) card.remove();
@@ -142,13 +142,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const alertList = document.querySelector('.alert-list');
       if (alertList && Array.isArray(report.alerts)) {
-        alertList.innerHTML = report.alerts.map(alert => `
-          <div class="alert-row ${alert.level === 'critical' ? 'red' : 'amber'}">
-            <div class="icon">${alert.level === 'critical' ? '⊘' : '△'}</div>
-            <div class="status-text">${escapeHtml(alert.title || '')}</div>
-            <div class="desc">${escapeHtml(alert.description || '')}</div>
-          </div>
-        `).join('');
+        alertList.innerHTML = report.alerts
+          .map(
+            (alert) => `
+            <div class="alert-row ${alert.level === 'critical' ? 'red' : 'amber'}">
+              <div class="icon">${alert.level === 'critical' ? '⊘' : '△'}</div>
+              <div class="status-text">${escapeHtml(alert.title || '')}</div>
+              <div class="desc">${escapeHtml(alert.description || '')}</div>
+            </div>
+          `
+          )
+          .join('');
       }
 
       const bottomStatus = document.querySelector('.bottom-status');
@@ -175,50 +179,56 @@ document.addEventListener('DOMContentLoaded', () => {
       const tbody = document.querySelector('table tbody');
       if (!tbody) return;
 
-      tbody.innerHTML = data.parts.map(part => {
-        const riskClass = part.risk_level === 'critical'
-          ? 'row-border-red'
-          : part.risk_level === 'warning'
-          ? 'row-border-amber'
-          : '';
+      tbody.innerHTML = data.parts
+        .map((part) => {
+          const riskClass =
+            part.risk_level === 'critical'
+              ? 'row-border-red'
+              : part.risk_level === 'warning'
+              ? 'row-border-amber'
+              : '';
 
-        const riskIcon = part.risk_level === 'critical'
-          ? '⊘'
-          : part.risk_level === 'warning'
-          ? '△'
-          : '◌';
+          const riskIcon =
+            part.risk_level === 'critical'
+              ? '⊘'
+              : part.risk_level === 'warning'
+              ? '△'
+              : '◌';
 
-        const riskIconClass = part.risk_level === 'critical'
-          ? 'stock-red'
-          : part.risk_level === 'warning'
-          ? 'stock-amber'
-          : 'stock-green';
+          const riskIconClass =
+            part.risk_level === 'critical'
+              ? 'stock-red'
+              : part.risk_level === 'warning'
+              ? 'stock-amber'
+              : 'stock-green';
 
-        const lifecycleClass = (part.lifecycle || '').toLowerCase() === 'eol'
-          ? 'eol'
-          : (part.lifecycle || '').toLowerCase() === 'nrnd'
-          ? 'nrnd'
-          : 'active';
+          const lifecycleClass =
+            (part.lifecycle || '').toLowerCase() === 'eol'
+              ? 'eol'
+              : (part.lifecycle || '').toLowerCase() === 'nrnd'
+              ? 'nrnd'
+              : 'active';
 
-        return `
-          <tr class="${riskClass}">
-            <td class="${riskIconClass}">${riskIcon}</td>
-            <td class="mpn">${escapeHtml(part.mpn || '')}</td>
-            <td>${escapeHtml(part.manufacturer || '')}</td>
-            <td>${escapeHtml(part.description || '')}</td>
-            <td>${part.qty ?? ''}</td>
-            <td>${escapeHtml(part.category || '')}</td>
-            <td>${escapeHtml(part.package || '')}</td>
-            <td><span class="status ${lifecycleClass}">${escapeHtml(part.lifecycle || 'Active')}</span></td>
-            <td>${escapeHtml(part.yteol || '—')}</td>
-            <td>${part.stock ?? '—'}</td>
-            <td>${formatMoney(part.unit_price)}</td>
-            <td>${formatMoney(part.ext_price)}</td>
-            <td>${escapeHtml(part.trend || '—')}</td>
-            <td>${renderCompliance(part.compliance)}</td>
-          </tr>
-        `;
-      }).join('');
+          return `
+            <tr class="${riskClass}">
+              <td class="${riskIconClass}">${riskIcon}</td>
+              <td class="mpn">${escapeHtml(part.mpn || '')}</td>
+              <td>${escapeHtml(part.manufacturer || '')}</td>
+              <td>${escapeHtml(part.description || '')}</td>
+              <td>${part.qty ?? ''}</td>
+              <td>${escapeHtml(part.category || '')}</td>
+              <td>${escapeHtml(part.package || '')}</td>
+              <td><span class="status ${lifecycleClass}">${escapeHtml(part.lifecycle || 'Active')}</span></td>
+              <td>${escapeHtml(part.yteol || '—')}</td>
+              <td>${part.stock ?? '—'}</td>
+              <td>${formatMoney(part.unit_price)}</td>
+              <td>${formatMoney(part.ext_price)}</td>
+              <td>${escapeHtml(part.trend || '—')}</td>
+              <td>${renderCompliance(part.compliance)}</td>
+            </tr>
+          `;
+        })
+        .join('');
     } catch (error) {
       console.error('Parts hydration failed:', error);
     }
@@ -228,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!compliance) return '—';
     const list = Array.isArray(compliance) ? compliance : String(compliance).split(',');
     return list
-      .map(item => `<span class="comp-badge">${escapeHtml(String(item).trim())}</span>`)
+      .map((item) => `<span class="comp-badge">${escapeHtml(String(item).trim())}</span>`)
       .join('');
   }
 

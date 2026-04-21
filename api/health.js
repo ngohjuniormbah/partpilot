@@ -1,10 +1,10 @@
-const { query } = require('../lib/db');
+const db = require('../lib/db');
 
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
   try {
-    const result = await query('select now() as now');
+    const result = await db.runQuery('select now() as now');
 
     return res.status(200).json({
       ok: true,
