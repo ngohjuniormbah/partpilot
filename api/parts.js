@@ -1,34 +1,78 @@
-const { sendJson, withCors, getUrl } = require('../lib/http');
-const { getScanBundle, buildDemoScan } = require('../lib/scan-service');
+const { query } = require('../lib/db');
 
 module.exports = async (req, res) => {
-  if (withCors(req, res)) return;
-  const url = getUrl(req);
-  const scanId = url.searchParams.get('scanId');
-  const risk = (url.searchParams.get('risk') || '').trim().toLowerCase();
-  const lifecycle = (url.searchParams.get('lifecycle') || '').trim().toLowerCase();
-  const q = (url.searchParams.get('q') || '').trim().toLowerCase();
+  res.setHeader('Content-Type', 'application/json');
 
-  const bundle = scanId ? await getScanBundle(scanId) : await buildDemoScan();
-  if (!bundle) {
-    return sendJson(res, 404, { ok: false, error: 'Scan not found' });
-  }
+  try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({
+        ok: false,
+        error: 'Method not allowed'
+      });
+    }
 
-  let parts = bundle.parts.slice();
-  if (risk) parts = parts.filter((part) => String(part.risk).toLowerCase() === risk);
-  if (lifecycle) parts = parts.filter((part) => String(part.lifecycle).toLowerCase() === lifecycle);
-  if (q) {
-    parts = parts.filter((part) =>
-      [part.mpn, part.manufacturer, part.description, part.category, part.package].some((value) =>
-        String(value || '').toLowerCase().includes(q)
-      )
+    const { scanId } = req.query;
+
+    if (!scanId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'scanId is required'
+      });
+    }
+
+    const result = await query(
+      `
+        select
+          mpn,
+          manufacturer,
+          description,
+          qty,
+          category,
+          package,
+          lifecycle,
+          yteol,
+          stock,
+          unit_price,
+          ext_price,
+          trend,
+          compliance,
+          risk_level
+        from parts
+        where scan_id = $1
+        order by id asc
+      `,
+      [scanId]
     );
-  }
 
-  return sendJson(res, 200, {
-    ok: true,
-    scanId: bundle.scan.id,
-    summary: bundle.scan.summary,
-    parts,
-  });
+    const parts = result.rows.map(part => ({
+      ...part,
+      compliance: parseCompliance(part.compliance)
+    }));
+
+    return res.status(200).json({
+      ok: true,
+      parts
+    });
+  } catch (error) {
+    console.error('parts error:', error);
+
+    return res.status(500).json({
+      ok: false,
+      error: error.message || 'Failed to get parts'
+    });
+  }
 };
+
+function parseCompliance(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return String(value)
+      .split(',')
+      .map(v => v.trim())
+      .filter(Boolean);
+  }
+}
