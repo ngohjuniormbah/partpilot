@@ -1,22 +1,45 @@
-const { sendJson, withCors, getUrl } = require('../lib/http');
-const { getScanBundle } = require('../lib/scan-service');
+const { getScanStatus } = require('../lib/scan-service');
 
 module.exports = async (req, res) => {
-  if (withCors(req, res)) return;
-  const url = getUrl(req);
-  const scanId = url.searchParams.get('scanId');
-  if (!scanId) {
-    return sendJson(res, 400, { ok: false, error: 'scanId is required' });
+  res.setHeader('Content-Type', 'application/json');
+
+  try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({
+        ok: false,
+        error: 'Method not allowed'
+      });
+    }
+
+    const { scanId } = req.query;
+
+    if (!scanId) {
+      return res.status(400).json({
+        ok: false,
+        error: 'scanId is required'
+      });
+    }
+
+    const scan = await getScanStatus(scanId);
+
+    if (!scan) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Scan not found'
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      scanId,
+      status: scan.status || 'processing'
+    });
+  } catch (error) {
+    console.error('scan-status error:', error);
+
+    return res.status(500).json({
+      ok: false,
+      error: error.message || 'Failed to get scan status'
+    });
   }
-  const bundle = await getScanBundle(scanId);
-  if (!bundle) {
-    return sendJson(res, 404, { ok: false, error: 'Scan not found' });
-  }
-  return sendJson(res, 200, {
-    ok: true,
-    scanId: bundle.scan.id,
-    status: bundle.scan.status,
-    filename: bundle.scan.filename,
-    redirectUrl: `/audit-report.html?scanId=${encodeURIComponent(bundle.scan.id)}`,
-  });
 };
