@@ -1,14 +1,13 @@
 {
-  "name": "partpilot-vercel",
-  "version": "2.0.0",
+  "name": "partpilot",
+  "version": "1.0.0",
   "private": true,
-  "description": "PartPilot production-ready BOM ingestion backend for Vercel",
-  "scripts": {
-    "dev": "vercel dev",
-    "start": "vercel dev"
+  "type": "commonjs",
+  "engines": {
+    "node": "20.x"
   },
   "dependencies": {
-    "pg": "^8.13.1",
+    "pg": "^8.11.5",
     "xlsx": "^0.18.5"
   }
 }
