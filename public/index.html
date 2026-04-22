@@ -25,15 +25,17 @@
         Drop your BOM. See your risk. In seconds.
       </p>
 
-      <div class="upload-box">
+      <div class="upload-box" id="upload-box">
         <div class="upload-icon">⇪</div>
         <div class="upload-title">Drop BOM here</div>
         <div class="upload-sub">CSV, XLS, XLSX — No signup required</div>
         <div class="upload-hint">📄 MPN, Manufacturer, Description, Qty, Footprint, Category</div>
       </div>
 
+      <input id="bom-file-input" type="file" accept=".csv,.xls,.xlsx" style="display:none;" />
+
       <div class="action-row">
-        <a href="/processing.html?next=/audit-report.html" data-demo-load class="text-link">→ load demo BOM (12 parts)</a>
+        <a href="#" id="demo-load-link" class="text-link">→ load demo BOM (12 parts)</a>
         <a href="/parametric-search.html" class="text-link">⌕ parametric cross-reference search</a>
       </div>
 
