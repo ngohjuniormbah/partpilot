@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
+  const STORAGE_KEY = 'partpilot_last_scan_id';
+
   const state = {
     parts: [],
     report: null,
@@ -16,26 +18,58 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
 
-  function getScanId() {
-    const params = new URLSearchParams(window.location.search);
-    const scanId = params.get('scanId');
+  function getUrlScanId() {
+    return new URLSearchParams(window.location.search).get('scanId');
+  }
 
-    const requiresScan =
-      window.location.pathname.endsWith('/processing.html') ||
-      window.location.pathname.endsWith('/audit-report.html') ||
-      window.location.pathname.endsWith('/audit-table.html') ||
-      window.location.pathname.endsWith('/parametric-search.html');
+  function getStoredScanId() {
+    return localStorage.getItem(STORAGE_KEY);
+  }
 
-    if (!scanId && requiresScan) {
-      const isDemo = params.get('demo') === '1';
-      if (!isDemo || !window.location.pathname.endsWith('/processing.html')) {
-        alert('Missing scanId. Redirecting to homepage.');
-        window.location.href = '/';
-        return null;
-      }
+  function setStoredScanId(scanId) {
+    if (scanId) {
+      localStorage.setItem(STORAGE_KEY, scanId);
+    }
+  }
+
+  function getCurrentScanId() {
+    const urlScanId = getUrlScanId();
+    if (urlScanId) {
+      setStoredScanId(urlScanId);
+      return urlScanId;
     }
 
-    return scanId;
+    const stored = getStoredScanId();
+    if (stored) return stored;
+
+    return null;
+  }
+
+  function ensureScanIdForPage() {
+    const path = window.location.pathname;
+    const needsScan =
+      path.endsWith('/audit-report.html') ||
+      path.endsWith('/audit-table.html') ||
+      path.endsWith('/parametric-search.html');
+
+    if (!needsScan) return null;
+
+    const urlScanId = getUrlScanId();
+    const storedScanId = getStoredScanId();
+
+    if (!urlScanId && storedScanId) {
+      const url = `${path}?scanId=${encodeURIComponent(storedScanId)}`;
+      window.location.replace(url);
+      return null;
+    }
+
+    if (!urlScanId && !storedScanId) {
+      alert('No active scan found. Redirecting to homepage.');
+      window.location.replace('/');
+      return null;
+    }
+
+    return urlScanId;
   }
 
   async function fetchJSON(url, options = {}) {
@@ -89,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function parseCompliance(value) {
     if (!value) return [];
     if (Array.isArray(value)) return value;
+
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
@@ -96,85 +131,28 @@ document.addEventListener('DOMContentLoaded', function () {
       } catch (_) {}
       return value.split(',').map(v => v.trim()).filter(Boolean);
     }
+
     return [];
   }
 
-  function attachGlobalNav() {
-    const path = window.location.pathname;
-    const scanId = new URLSearchParams(window.location.search).get('scanId');
-
-    document.querySelectorAll('.small-link').forEach((el) => {
-      const text = (el.textContent || '').trim();
-
-      if (text.includes('Cross-Ref')) {
-        el.style.cursor = 'pointer';
-        el.addEventListener('click', () => {
-          const url = scanId
-            ? `/parametric-search.html?scanId=${encodeURIComponent(scanId)}`
-            : '/parametric-search.html';
-          window.location.href = url;
-        });
-      }
-
-      if (text.includes('Audit Log')) {
-        el.style.cursor = 'pointer';
-        el.addEventListener('click', () => {
-          const currentScanId = new URLSearchParams(window.location.search).get('scanId');
-          const report = state.report;
-          const parts = state.parts || [];
-          const message = report
-            ? [
-                `Scan ID: ${currentScanId || 'N/A'}`,
-                `Grade: ${report.grade || 'N/A'}`,
-                `Critical: ${report.criticalCount || 0}`,
-                `Warnings: ${report.warningCount || 0}`,
-                `Parts loaded: ${report.totalParts || parts.length || 0}`,
-                `Out of stock: ${report.outOfStockCount || 0}`
-              ].join('\n')
-            : [
-                `Scan ID: ${currentScanId || 'N/A'}`,
-                `Parts loaded: ${parts.length || 0}`
-              ].join('\n');
-
-          alert(message);
-        });
-      }
-    });
-
-    document.querySelectorAll('.view-toggle button').forEach((btn) => {
-      const text = (btn.textContent || '').trim();
-
-      if (text === '▦') {
-        btn.style.cursor = 'pointer';
-        btn.addEventListener('click', () => {
-          if (!path.endsWith('/audit-table.html')) {
-            const currentScanId = new URLSearchParams(window.location.search).get('scanId');
-            const url = currentScanId
-              ? `/audit-table.html?scanId=${encodeURIComponent(currentScanId)}`
-              : '/audit-table.html';
-            window.location.href = url;
-          }
-        });
-      }
-
-      if (text === '☰') {
-        btn.style.cursor = 'pointer';
-        btn.addEventListener('click', () => {
-          if (!path.endsWith('/audit-report.html')) {
-            const currentScanId = new URLSearchParams(window.location.search).get('scanId');
-            const url = currentScanId
-              ? `/audit-report.html?scanId=${encodeURIComponent(currentScanId)}`
-              : '/audit-report.html';
-            window.location.href = url;
-          }
-        });
-      }
-    });
+  function buildUrl(path, scanId) {
+    return scanId ? `${path}?scanId=${encodeURIComponent(scanId)}` : path;
   }
 
   function attachHomepageFlow() {
     const uploadBox = document.getElementById('upload-box');
     const fileInput = document.getElementById('bom-file-input');
+    const signInBtn = document.querySelector('.signin-btn');
+
+    if (signInBtn) {
+      signInBtn.addEventListener('click', function (e) {
+        const scanId = getCurrentScanId();
+        if (scanId) {
+          e.preventDefault();
+          window.location.href = buildUrl('/audit-report.html', scanId);
+        }
+      });
+    }
 
     if (uploadBox && fileInput) {
       uploadBox.addEventListener('click', function () {
@@ -202,7 +180,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
           if (!data.scanId) throw new Error('Missing scanId from upload response');
 
-          window.location.href = `/processing.html?scanId=${encodeURIComponent(data.scanId)}`;
+          setStoredScanId(data.scanId);
+          window.location.href = buildUrl('/processing.html', data.scanId);
         } catch (error) {
           console.error('Upload error:', error);
           alert(error.message || 'Failed to upload BOM');
@@ -214,12 +193,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function attachProcessingFlow() {
-    if (document.body.dataset.page !== 'processing') return;
+    if (!document.body.dataset.page || document.body.dataset.page !== 'processing') return;
 
     const title = document.getElementById('scan-title') || document.querySelector('.scan-title');
     const bar = document.getElementById('progress-bar') || document.querySelector('.progress-bar');
-    const initialScanId = new URLSearchParams(window.location.search).get('scanId');
-    const demo = new URLSearchParams(window.location.search).get('demo');
+    const params = new URLSearchParams(window.location.search);
+    const demo = params.get('demo');
+    let currentScanId = params.get('scanId');
 
     const lines = Array.from(document.querySelectorAll('.term-line'));
     lines.forEach((line, i) => {
@@ -237,18 +217,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function boot() {
       try {
-        let currentScanId = initialScanId;
-
         if (demo === '1' && !currentScanId) {
           if (title) title.textContent = 'creating demo scan...';
           const result = await fetchJSON('/api/demo-scan');
           currentScanId = result.scanId;
-          window.history.replaceState({}, '', `/processing.html?scanId=${encodeURIComponent(currentScanId)}`);
+          setStoredScanId(currentScanId);
+          window.history.replaceState({}, '', buildUrl('/processing.html', currentScanId));
+        }
+
+        if (!currentScanId) {
+          currentScanId = getStoredScanId();
         }
 
         if (!currentScanId) {
           throw new Error('Missing scanId');
         }
+
+        setStoredScanId(currentScanId);
 
         async function poll() {
           const statusData = await fetchJSON(`/api/scan-status?scanId=${encodeURIComponent(currentScanId)}`);
@@ -258,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function () {
             clearInterval(timer);
             if (bar) bar.style.width = '100%';
             setTimeout(() => {
-              window.location.href = `/audit-report.html?scanId=${encodeURIComponent(currentScanId)}`;
+              window.location.href = buildUrl('/audit-report.html', currentScanId);
             }, 500);
             return;
           }
@@ -282,6 +267,73 @@ document.addEventListener('DOMContentLoaded', function () {
     boot();
   }
 
+  function attachGlobalNav() {
+    const path = window.location.pathname;
+    const scanId = getCurrentScanId();
+
+    document.querySelectorAll('.small-link').forEach((el) => {
+      const text = (el.textContent || '').trim();
+
+      if (text.includes('Cross-Ref')) {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          window.location.href = buildUrl('/parametric-search.html', scanId);
+        });
+      }
+
+      if (text.includes('Audit Log')) {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          const currentScanId = getCurrentScanId();
+          const report = state.report;
+          const parts = state.parts || [];
+
+          const lines = [
+            `Scan ID: ${currentScanId || 'N/A'}`,
+            `Grade: ${report?.grade || 'N/A'}`,
+            `Critical: ${report?.criticalCount ?? 0}`,
+            `Warnings: ${report?.warningCount ?? 0}`,
+            `Parts loaded: ${report?.totalParts ?? parts.length ?? 0}`,
+            `Out of stock: ${report?.outOfStockCount ?? 0}`
+          ];
+
+          alert(lines.join('\n'));
+        });
+      }
+    });
+
+    document.querySelectorAll('.view-toggle button').forEach((btn) => {
+      const text = (btn.textContent || '').trim();
+
+      if (text === '▦') {
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', () => {
+          if (!path.endsWith('/audit-table.html')) {
+            window.location.href = buildUrl('/audit-table.html', scanId);
+          }
+        });
+      }
+
+      if (text === '☰') {
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', () => {
+          if (!path.endsWith('/audit-report.html')) {
+            window.location.href = buildUrl('/audit-report.html', scanId);
+          }
+        });
+      }
+    });
+
+    document.querySelectorAll('a.top-btn.green').forEach((link) => {
+      link.href = buildUrl('/audit-report.html', scanId);
+    });
+
+    const brand = document.querySelector('.brand');
+    if (brand) {
+      brand.href = scanId ? buildUrl('/audit-report.html', scanId) : '/';
+    }
+  }
+
   function attachWatchButton() {
     const watchButton = document.querySelector('.watch-btn');
     if (!watchButton) return;
@@ -289,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function () {
     watchButton.addEventListener('click', async () => {
       const input = watchButton.closest('.monitor-form')?.querySelector('input');
       const email = input?.value?.trim();
-      const scanId = new URLSearchParams(window.location.search).get('scanId');
+      const scanId = getCurrentScanId();
 
       if (!email) {
         alert('Enter an email first');
@@ -325,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function hydrateReportPage() {
     if (!window.location.pathname.endsWith('/audit-report.html')) return;
 
-    const scanId = getScanId();
+    const scanId = ensureScanIdForPage();
     if (!scanId) return;
 
     fetchJSON(`/api/report?scanId=${encodeURIComponent(scanId)}`)
@@ -403,7 +455,13 @@ document.addEventListener('DOMContentLoaded', function () {
       .join('');
 
     if (!filtered.length) {
-      alertList.innerHTML = `<div class="alert-row amber"><div class="icon">△</div><div class="status-text">No matching alerts</div><div class="desc">Try clearing your search or filters.</div></div>`;
+      alertList.innerHTML = `
+        <div class="alert-row amber">
+          <div class="icon">△</div>
+          <div class="status-text">No matching alerts</div>
+          <div class="desc">Try clearing your search or filters.</div>
+        </div>
+      `;
     }
   }
 
@@ -453,15 +511,17 @@ document.addEventListener('DOMContentLoaded', function () {
   function hydrateTablePage() {
     if (!window.location.pathname.endsWith('/audit-table.html')) return;
 
-    const scanId = getScanId();
+    const scanId = ensureScanIdForPage();
     if (!scanId) return;
 
     fetchJSON(`/api/parts?scanId=${encodeURIComponent(scanId)}`)
       .then((data) => {
-        state.parts = Array.isArray(data.parts) ? data.parts.map((p) => ({
-          ...p,
-          compliance: parseCompliance(p.compliance)
-        })) : [];
+        state.parts = Array.isArray(data.parts)
+          ? data.parts.map((p) => ({
+              ...p,
+              compliance: parseCompliance(p.compliance)
+            }))
+          : [];
 
         renderTableParts();
         attachTableFilters();
@@ -676,9 +736,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  attachGlobalNav();
   attachHomepageFlow();
   attachProcessingFlow();
+  attachGlobalNav();
   hydrateReportPage();
   hydrateTablePage();
   attachWatchButton();
