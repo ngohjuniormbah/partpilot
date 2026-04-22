@@ -8,7 +8,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/css/styles.css" />
-  <script defer src="/assets/js/app.js"></script>
 </head>
 <body data-page="landing">
   <a class="signin-btn" href="/audit-report.html">→ Sign in</a>
@@ -25,7 +24,7 @@
         Drop your BOM. See your risk. In seconds.
       </p>
 
-      <div class="upload-box" id="upload-box">
+      <div class="upload-box" id="upload-box" onclick="document.getElementById('bom-file-input').click()">
         <div class="upload-icon">⇪</div>
         <div class="upload-title">Drop BOM here</div>
         <div class="upload-sub">CSV, XLS, XLSX — No signup required</div>
@@ -35,12 +34,116 @@
       <input id="bom-file-input" type="file" accept=".csv,.xls,.xlsx" style="display:none;" />
 
       <div class="action-row">
-        <a href="#" id="demo-load-link" class="text-link">→ load demo BOM (12 parts)</a>
+        <button
+          id="demo-load-btn"
+          class="text-link"
+          type="button"
+          onclick="startDemoBom()"
+          style="background:none;border:none;color:inherit;font:inherit;cursor:pointer"
+        >
+          → load demo BOM (12 parts)
+        </button>
+
         <a href="/parametric-search.html" class="text-link">⌕ parametric cross-reference search</a>
       </div>
 
       <div class="bottom-note">partpilot v0.1.0 • no tracking • no marketing • just engineering</div>
     </section>
   </main>
+
+  <script>
+    async function fetchJSON(url, options = {}) {
+      const response = await fetch(url, options);
+      const text = await response.text();
+
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (err) {
+        throw new Error(text || 'Server returned invalid JSON');
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || ('Request failed with status ' + response.status));
+      }
+
+      return data;
+    }
+
+    async function startDemoBom() {
+      const btn = document.getElementById('demo-load-btn');
+
+      try {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+
+        const data = await fetchJSON('/api/demo-scan');
+
+        if (!data.scanId) {
+          throw new Error('Missing scanId from demo response');
+        }
+
+        window.location.href = '/processing.html?scanId=' + encodeURIComponent(data.scanId);
+      } catch (error) {
+        console.error('Demo BOM error:', error);
+        alert(error.message || 'Failed to start demo BOM');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = function () {
+          const result = String(reader.result || '');
+          const commaIndex = result.indexOf(',');
+          resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+        };
+
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById('bom-file-input').addEventListener('change', async function (e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const uploadBox = document.getElementById('upload-box');
+
+      try {
+        uploadBox.style.pointerEvents = 'none';
+        uploadBox.style.opacity = '0.6';
+
+        const fileBase64 = await readFileAsBase64(file);
+
+        const data = await fetchJSON('/api/upload-bom', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            filename: file.name,
+            fileBase64
+          })
+        });
+
+        if (!data.scanId) {
+          throw new Error('Missing scanId from upload response');
+        }
+
+        window.location.href = '/processing.html?scanId=' + encodeURIComponent(data.scanId);
+      } catch (error) {
+        console.error('Upload error:', error);
+        alert(error.message || 'Failed to upload BOM');
+        uploadBox.style.pointerEvents = '';
+        uploadBox.style.opacity = '';
+      }
+    });
+  </script>
+
+  <script defer src="/assets/js/app.js"></script>
 </body>
 </html>
