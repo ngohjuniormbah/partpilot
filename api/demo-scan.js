@@ -5,10 +5,7 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method !== 'GET') {
-      return res.status(405).json({
-        ok: false,
-        error: 'Method not allowed'
-      });
+      return res.status(405).json({ ok: false, error: 'Method not allowed' });
     }
 
     const result = await createDemoScan();
@@ -16,11 +13,10 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       ok: true,
       scanId: result.scanId,
-      status: result.status || 'completed'
+      status: result.status
     });
   } catch (error) {
     console.error('demo-scan error:', error);
-
     return res.status(500).json({
       ok: false,
       error: error.message || 'Failed to create demo scan'

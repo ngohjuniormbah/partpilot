@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let data;
     try {
       data = text ? JSON.parse(text) : {};
-    } catch (err) {
+    } catch {
       throw new Error(`Server returned non-JSON response: ${text.slice(0, 200)}`);
     }
 
@@ -21,6 +21,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getScanId() {
     return new URLSearchParams(window.location.search).get('scanId');
+  }
+
+  function ensureUploadInput() {
+    let input = document.querySelector('#bom-file-input');
+
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'file';
+      input.id = 'bom-file-input';
+      input.accept = '.csv,.xls,.xlsx';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+    }
+
+    return input;
+  }
+
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || '');
+        const base64 = result.includes(',') ? result.split(',')[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const uploadBox = document.querySelector('.upload-box');
+  if (uploadBox) {
+    uploadBox.style.cursor = 'pointer';
+
+    uploadBox.addEventListener('click', () => {
+      ensureUploadInput().click();
+    });
+
+    ensureUploadInput().addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      try {
+        uploadBox.style.pointerEvents = 'none';
+        uploadBox.style.opacity = '0.6';
+
+        const fileBase64 = await readFileAsBase64(file);
+
+        const data = await fetchJSON('/api/upload-bom', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            filename: file.name,
+            fileBase64
+          })
+        });
+
+        window.location.href = `/processing.html?scanId=${encodeURIComponent(data.scanId)}`;
+      } catch (error) {
+        console.error('Upload failed:', error);
+        alert(error.message || 'Failed to upload BOM');
+        uploadBox.style.pointerEvents = '';
+        uploadBox.style.opacity = '';
+      }
+    });
   }
 
   const demoLink = document.querySelector('[data-demo-load]');
@@ -113,15 +180,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  const watchButton = document.querySelector('.watch-btn');
+  if (watchButton) {
+    watchButton.addEventListener('click', async () => {
+      const input = watchButton.closest('.monitor-form')?.querySelector('input');
+      const email = input?.value?.trim();
+      const scanId = getScanId();
+
+      if (!email) {
+        alert('Enter an email first');
+        return;
+      }
+
+      try {
+        await fetchJSON('/api/watch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, scanId })
+        });
+
+        alert('Watch saved');
+        input.value = '';
+      } catch (error) {
+        console.error('Watch save failed:', error);
+        alert(error.message || 'Failed to save watch');
+      }
+    });
+  }
+
   async function hydrateReportPage() {
     const scanId = getScanId();
     if (!scanId) return;
 
     try {
       const data = await fetchJSON(`/api/report?scanId=${encodeURIComponent(scanId)}`);
-      if (!data.report) return;
-
       const report = data.report;
+      if (!report) return;
 
       const gradeLetter = document.querySelector('.grade-letter');
       if (gradeLetter && report.grade) gradeLetter.textContent = report.grade;
@@ -130,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (muted && report.summary) muted.textContent = report.summary;
 
       const rowline = document.querySelector('.hero-grade .rowline.tiny');
-      if (rowline && typeof report.totalParts !== 'undefined') {
+      if (rowline) {
         rowline.innerHTML = `
           <span>${report.totalParts} parts analyzed</span>
           <span>•</span>
@@ -165,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (error) {
       console.error('Report hydration failed:', error);
+      alert(error.message || 'Failed to load report');
     }
   }
 
@@ -231,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .join('');
     } catch (error) {
       console.error('Parts hydration failed:', error);
+      alert(error.message || 'Failed to load parts');
     }
   }
 

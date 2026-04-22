@@ -1,37 +1,30 @@
-const crypto = require('crypto');
-const { readJsonBody, sendJson, withCors } = require('../lib/http');
-const { saveWatchSubscription } = require('../lib/db');
+const { saveWatch } = require('../lib/scan-service');
 
 module.exports = async (req, res) => {
-  if (withCors(req, res)) return;
-  if (req.method !== 'POST') {
-    return sendJson(res, 405, { ok: false, error: 'Method not allowed' });
-  }
+  res.setHeader('Content-Type', 'application/json');
 
   try {
-    const body = await readJsonBody(req);
-    const email = String(body.email || '').trim().toLowerCase();
-    const scanId = body.scanId ? String(body.scanId) : null;
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return sendJson(res, 400, { ok: false, error: 'Valid email is required' });
+    if (req.method !== 'POST') {
+      return res.status(405).json({ ok: false, error: 'Method not allowed' });
     }
 
-    await saveWatchSubscription({
-      id: `watch_${crypto.randomUUID().replace(/-/g, '')}`,
-      scanId,
-      email,
-    });
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const { email, scanId } = body || {};
 
-    return sendJson(res, 201, {
-      ok: true,
-      message: 'Watch subscription saved',
+    if (!email) {
+      return res.status(400).json({ ok: false, error: 'email is required' });
+    }
+
+    await saveWatch({ email, scanId });
+
+    return res.status(200).json({
+      ok: true
     });
   } catch (error) {
-    return sendJson(res, 400, {
+    console.error('watch error:', error);
+    return res.status(500).json({
       ok: false,
-      error: 'Failed to save watch subscription',
-      details: error.message,
+      error: error.message || 'Failed to save watch request'
     });
   }
 };
