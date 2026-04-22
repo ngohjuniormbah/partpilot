@@ -3,42 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PartPilot — Component Risk Intelligence</title>
+  <title>PartPilot — Scanning BOM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/css/styles.css" />
-  <script defer src="/assets/js/app.js"></script>
 </head>
-<body data-page="landing">
-  <a class="signin-btn" href="/audit-report.html">→ Sign in</a>
+<body data-page="processing">
+  <main class="scan-shell">
+    <section class="scan-center">
+      <div class="scan-title" id="scan-title">starting scan...</div>
 
-  <main class="landing-shell">
-    <section class="hero-center">
-      <div class="landing-logo">
-        <div class="mark">›_</div>
-        <div class="word">PartPilot</div>
+      <div class="term-box">
+        <div class="term-line">$ Parsing BOM structure...</div>
+        <div class="term-line">$ Resolving manufacturer part numbers...</div>
+        <div class="term-line">$ Querying distributor APIs...</div>
+        <div class="term-line">$ Checking lifecycle status...</div>
+        <div class="term-line">$ Calculating risk scores...</div>
+        <div class="term-line">$ Mapping alternates...</div>
+        <div class="term-line">$ Building risk graph...</div>
+        <div class="term-line final done">$ Done.</div>
       </div>
 
-      <p class="subtext">
-        The immune system for your hardware design.<br />
-        Drop your BOM. See your risk. In seconds.
-      </p>
-
-      <div class="upload-box">
-        <div class="upload-icon">⇪</div>
-        <div class="upload-title">Drop BOM here</div>
-        <div class="upload-sub">CSV, XLS, XLSX — No signup required</div>
-        <div class="upload-hint">📄 MPN, Manufacturer, Description, Qty, Footprint, Category</div>
+      <div class="progress-shell">
+        <div class="progress-bar" id="progress-bar"></div>
       </div>
-
-      <div class="action-row">
-        <a href="/processing.html?next=/audit-report.html" data-demo-load class="text-link">→ load demo BOM (12 parts)</a>
-        <a href="/parametric-search.html" class="text-link">⌕ parametric cross-reference search</a>
-      </div>
-
-      <div class="bottom-note">partpilot v0.1.0 • no tracking • no marketing • just engineering</div>
     </section>
   </main>
+
+  <script>
+    async function fetchJSON(url, options = {}) {
+      const response = await fetch(url, options);
+      const text = await response.text();
+
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (err) {
+        throw new Error(text || 'Server returned invalid JSON');
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || ('Request failed with status ' + response.status));
+      }
+
+      return data;
+    }
+
+    function getParam(name) {
+      return new URLSearchParams(window.location.search).get(name);
+    }
+
+    function revealTerminalLines() {
+      const lines = Array.from(document.querySelectorAll('.term-line'));
+      lines.forEach((line, i) => {
+        setTimeout(() => {
+          line.style.opacity = '1';
+          line.style.transform = 'translateY(0)';
+        }, 220 + i * 340);
+      });
+    }
+
+    async function start() {
+      const title = document.getElementById('scan-title');
+      const bar = document.getElementById('progress-bar');
+
+      revealTerminalLines();
+
+      let progress = 0;
+      const timer = setInterval(() => {
+        progress = Math.min(progress + 10, 90);
+        if (bar) bar.style.width = progress + '%';
+      }, 300);
+
+      try {
+        let scanId = getParam('scanId');
+        const demo = getParam('demo');
+
+        if (demo === '1' && !scanId) {
+          title.textContent = 'creating demo scan...';
+          const demoResult = await fetchJSON('/api/demo-scan');
+
+          if (!demoResult.scanId) {
+            throw new Error('Missing scanId from demo response');
+          }
+
+          scanId = demoResult.scanId;
+
+          const nextUrl = '/processing.html?scanId=' + encodeURIComponent(scanId);
+          window.history.replaceState({}, '', nextUrl);
+        }
+
+        if (!scanId) {
+          throw new Error('Missing scanId');
+        }
+
+        async function poll() {
+          const data = await fetchJSON('/api/scan-status?scanId=' + encodeURIComponent(scanId));
+          title.textContent = 'scan status: ' + data.status + '...';
+
+          if (data.status === 'completed') {
+            clearInterval(timer);
+            if (bar) bar.style.width = '100%';
+
+            setTimeout(() => {
+              window.location.href = '/audit-report.html?scanId=' + encodeURIComponent(scanId);
+            }, 500);
+            return;
+          }
+
+          if (data.status === 'failed') {
+            clearInterval(timer);
+            throw new Error('Scan failed');
+          }
+
+          setTimeout(poll, 1200);
+        }
+
+        await poll();
+      } catch (error) {
+        clearInterval(timer);
+        console.error('Processing error:', error);
+        alert(error.message || 'Processing failed');
+      }
+    }
+
+    start();
+  </script>
 </body>
 </html>

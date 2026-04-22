@@ -34,16 +34,7 @@
       <input id="bom-file-input" type="file" accept=".csv,.xls,.xlsx" style="display:none;" />
 
       <div class="action-row">
-        <button
-          id="demo-load-btn"
-          class="text-link"
-          type="button"
-          onclick="startDemoBom()"
-          style="background:none;border:none;color:inherit;font:inherit;cursor:pointer"
-        >
-          → load demo BOM (12 parts)
-        </button>
-
+        <a href="/processing.html?demo=1" class="text-link">→ load demo BOM (12 parts)</a>
         <a href="/parametric-search.html" class="text-link">⌕ parametric cross-reference search</a>
       </div>
 
@@ -68,28 +59,6 @@
       }
 
       return data;
-    }
-
-    async function startDemoBom() {
-      const btn = document.getElementById('demo-load-btn');
-
-      try {
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-
-        const data = await fetchJSON('/api/demo-scan');
-
-        if (!data.scanId) {
-          throw new Error('Missing scanId from demo response');
-        }
-
-        window.location.href = '/processing.html?scanId=' + encodeURIComponent(data.scanId);
-      } catch (error) {
-        console.error('Demo BOM error:', error);
-        alert(error.message || 'Failed to start demo BOM');
-        btn.disabled = false;
-        btn.style.opacity = '1';
-      }
     }
 
     function readFileAsBase64(file) {
@@ -143,7 +112,5 @@
       }
     });
   </script>
-
-  <script defer src="/assets/js/app.js"></script>
 </body>
 </html>
