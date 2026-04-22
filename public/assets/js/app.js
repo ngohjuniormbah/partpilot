@@ -17,7 +17,25 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   function getScanId() {
-    return new URLSearchParams(window.location.search).get('scanId');
+    const params = new URLSearchParams(window.location.search);
+    const scanId = params.get('scanId');
+
+    const requiresScan =
+      window.location.pathname.endsWith('/processing.html') ||
+      window.location.pathname.endsWith('/audit-report.html') ||
+      window.location.pathname.endsWith('/audit-table.html') ||
+      window.location.pathname.endsWith('/parametric-search.html');
+
+    if (!scanId && requiresScan) {
+      const isDemo = params.get('demo') === '1';
+      if (!isDemo || !window.location.pathname.endsWith('/processing.html')) {
+        alert('Missing scanId. Redirecting to homepage.');
+        window.location.href = '/';
+        return null;
+      }
+    }
+
+    return scanId;
   }
 
   async function fetchJSON(url, options = {}) {
@@ -83,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function attachGlobalNav() {
     const path = window.location.pathname;
-    const scanId = getScanId();
+    const scanId = new URLSearchParams(window.location.search).get('scanId');
 
     document.querySelectorAll('.small-link').forEach((el) => {
       const text = (el.textContent || '').trim();
@@ -101,18 +119,23 @@ document.addEventListener('DOMContentLoaded', function () {
       if (text.includes('Audit Log')) {
         el.style.cursor = 'pointer';
         el.addEventListener('click', () => {
+          const currentScanId = new URLSearchParams(window.location.search).get('scanId');
           const report = state.report;
           const parts = state.parts || [];
           const message = report
             ? [
-                `Scan ID: ${scanId || 'N/A'}`,
+                `Scan ID: ${currentScanId || 'N/A'}`,
                 `Grade: ${report.grade || 'N/A'}`,
                 `Critical: ${report.criticalCount || 0}`,
                 `Warnings: ${report.warningCount || 0}`,
-                `Parts: ${report.totalParts || parts.length || 0}`,
+                `Parts loaded: ${report.totalParts || parts.length || 0}`,
                 `Out of stock: ${report.outOfStockCount || 0}`
               ].join('\n')
-            : `Scan ID: ${scanId || 'N/A'}\nParts loaded: ${parts.length}`;
+            : [
+                `Scan ID: ${currentScanId || 'N/A'}`,
+                `Parts loaded: ${parts.length || 0}`
+              ].join('\n');
+
           alert(message);
         });
       }
@@ -125,8 +148,9 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.style.cursor = 'pointer';
         btn.addEventListener('click', () => {
           if (!path.endsWith('/audit-table.html')) {
-            const url = scanId
-              ? `/audit-table.html?scanId=${encodeURIComponent(scanId)}`
+            const currentScanId = new URLSearchParams(window.location.search).get('scanId');
+            const url = currentScanId
+              ? `/audit-table.html?scanId=${encodeURIComponent(currentScanId)}`
               : '/audit-table.html';
             window.location.href = url;
           }
@@ -137,8 +161,9 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.style.cursor = 'pointer';
         btn.addEventListener('click', () => {
           if (!path.endsWith('/audit-report.html')) {
-            const url = scanId
-              ? `/audit-report.html?scanId=${encodeURIComponent(scanId)}`
+            const currentScanId = new URLSearchParams(window.location.search).get('scanId');
+            const url = currentScanId
+              ? `/audit-report.html?scanId=${encodeURIComponent(currentScanId)}`
               : '/audit-report.html';
             window.location.href = url;
           }
@@ -193,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const title = document.getElementById('scan-title') || document.querySelector('.scan-title');
     const bar = document.getElementById('progress-bar') || document.querySelector('.progress-bar');
-    const scanId = getScanId();
+    const initialScanId = new URLSearchParams(window.location.search).get('scanId');
     const demo = new URLSearchParams(window.location.search).get('demo');
 
     const lines = Array.from(document.querySelectorAll('.term-line'));
@@ -212,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function boot() {
       try {
-        let currentScanId = scanId;
+        let currentScanId = initialScanId;
 
         if (demo === '1' && !currentScanId) {
           if (title) title.textContent = 'creating demo scan...';
@@ -264,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function () {
     watchButton.addEventListener('click', async () => {
       const input = watchButton.closest('.monitor-form')?.querySelector('input');
       const email = input?.value?.trim();
-      const scanId = getScanId();
+      const scanId = new URLSearchParams(window.location.search).get('scanId');
 
       if (!email) {
         alert('Enter an email first');
@@ -386,7 +411,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.location.pathname.endsWith('/audit-report.html')) return;
 
     const searchInput = document.querySelector('.search-input');
-    if (searchInput) {
+    if (searchInput && !searchInput.dataset.bound) {
+      searchInput.dataset.bound = '1';
       searchInput.addEventListener('input', function () {
         state.reportFilters.search = this.value.trim();
         renderReportAlerts(state.report?.alerts || []);
@@ -394,9 +420,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.querySelectorAll('.filter-row .chip').forEach((chip) => {
+      if (chip.dataset.boundReport) return;
+
       const text = (chip.textContent || '').toLowerCase();
 
       if (text.includes('critical')) {
+        chip.dataset.boundReport = '1';
         chip.style.cursor = 'pointer';
         chip.addEventListener('click', () => {
           state.reportFilters.risk =
@@ -408,6 +437,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       if (text.includes('warning')) {
+        chip.dataset.boundReport = '1';
         chip.style.cursor = 'pointer';
         chip.addEventListener('click', () => {
           state.reportFilters.risk =
@@ -494,7 +524,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (state.activeFilters.mount) {
-      filtered = filtered.filter((part) => state.activeFilters.mount === 'smd');
+      filtered = filtered.filter(() => state.activeFilters.mount === 'smd');
     }
 
     tbody.innerHTML = filtered
@@ -561,7 +591,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.location.pathname.endsWith('/audit-table.html')) return;
 
     const searchInput = document.querySelector('.search-input');
-    if (searchInput) {
+    if (searchInput && !searchInput.dataset.bound) {
+      searchInput.dataset.bound = '1';
       searchInput.addEventListener('input', function () {
         state.activeFilters.search = this.value.trim();
         renderTableParts();
@@ -569,8 +600,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.querySelectorAll('.filter-row .chip').forEach((chip) => {
+      if (chip.dataset.boundTable) return;
+
       const text = (chip.textContent || '').trim().toLowerCase();
 
+      chip.dataset.boundTable = '1';
       chip.style.cursor = 'pointer';
 
       chip.addEventListener('click', function () {
